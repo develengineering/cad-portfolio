@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>6-Axis Robot Arm — interactive 3D model</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive 3D model of a 6-axis robot arm designed in SolidWorks: move every joint, watch the gear trains run, see through the housings, explode the assembly.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --acc: #ff7a1a; --bg: #0b0d10; --panel: rgba(16, 18, 22, 0.86); --line: rgba(255,255,255,0.09); --txt: #e8eaee; --mut: #9aa3ad; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--txt); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow: hidden; }
+  canvas#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #title { position: fixed; left: 22px; top: 18px; pointer-events: none; }
+  #title h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 1.5px; line-height: 1.05; }
+  #title h1 span { color: var(--acc); }
+  #title .sub { margin-top: 6px; font-size: 11.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--mut); }
+  #hint { position: fixed; left: 22px; bottom: 16px; font-size: 11.5px; color: var(--mut); pointer-events: none; line-height: 1.5; }
+  #hint b { color: #c9ced5; font-weight: 500; }
+  #panel { position: fixed; right: 16px; top: 16px; width: 300px; max-height: calc(100% - 32px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line);
+           border-radius: 14px; padding: 14px 16px 12px 16px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-size: 12.5px; }
+  #panel h2 { margin: 10px 0 6px 0; font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--mut); font-weight: 600; }
+  #panel h2:first-child { margin-top: 0; }
+  .j { display: grid; grid-template-columns: 92px 1fr 44px; align-items: center; gap: 8px; margin: 4px 0; }
+  .j label { color: #c9ced5; white-space: nowrap; }
+  .j label small { color: var(--mut); margin-left: 4px; }
+  .j output { text-align: right; font-variant-numeric: tabular-nums; color: #fff; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; background: #2a2f36; border-radius: 2px; outline: none; margin: 0; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--acc); border: 2px solid #1a1c20; cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--acc); border: 2px solid #1a1c20; cursor: pointer; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  button, select { font: inherit; font-size: 12px; color: var(--txt); background: #1c2026; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  button:hover { border-color: #3a414b; }
+  button.on { background: var(--acc); border-color: var(--acc); color: #111; font-weight: 600; }
+  button.sm { padding: 5px 8px; font-size: 11.5px; }
+  .chk { display: flex; align-items: center; gap: 8px; margin: 6px 0; color: #c9ced5; }
+  .chk input { accent-color: var(--acc); width: 15px; height: 15px; }
+  #info { position: fixed; left: 22px; bottom: 58px; max-width: 340px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--acc); border-radius: 10px;
+          padding: 10px 14px; font-size: 12.5px; display: none; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  #info b { font-size: 13.5px; display: block; margin-bottom: 3px; }
+  #info .m { color: var(--mut); line-height: 1.5; }
+  #info .m i { color: var(--acc); font-style: normal; font-weight: 600; }
+  #load { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); z-index: 10; transition: opacity .5s; }
+  #load .bar { width: 260px; height: 3px; background: #22262c; border-radius: 2px; overflow: hidden; margin-top: 14px; }
+  #load .bar i { display: block; height: 100%; width: 0; background: var(--acc); transition: width .2s; }
+  #load .t { font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--mut); }
+  #toggle { display: none; position: fixed; right: 14px; bottom: 14px; z-index: 5; background: var(--acc); color: #111; font-weight: 600; border: 0; border-radius: 20px; padding: 10px 16px; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+  @media (max-width: 760px) {
+    #title h1 { font-size: 20px; } #title .sub { font-size: 10px; }
+    #panel { right: 0; left: 0; top: auto; bottom: 0; width: 100%; max-height: 52vh; border-radius: 14px 14px 0 0; transform: translateY(105%); transition: transform .3s; }
+    #panel.open { transform: none; }
+    #toggle { display: block; } #hint { display: none; }
+    #info { bottom: 64px; left: 12px; right: 12px; max-width: none; }
+  }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="title"><h1><span>6-AXIS</span> ROBOT ARM</h1><div class="sub">Interactive 3D model · 159 components · reach 940 mm · payload 2 kg</div></div>
+<div id="hint"><b>Drag</b> rotate · <b>scroll</b> zoom · <b>right-drag</b> pan · <b>click a part</b> for its name and catalogue position<br>Designed in SolidWorks · every gear train turns with its real ratio · AI-assisted workflow</div>
+<div id="info"></div>
+<button id="toggle">Controls</button>
+<div id="panel">
+  <h2>Joints</h2>
+  <div id="joints"></div>
+  <div class="row"><button id="home" class="sm">Home pose</button><button id="demo" class="sm">▶ Play demo</button><button id="zero" class="sm">Candle pose</button></div>
+  <h2>Look inside</h2>
+  <label class="chk"><input type="checkbox" id="xray"> Housings transparent — see the gear trains</label>
+  <div class="j"><label>Explode</label><input type="range" id="explode" min="0" max="1" step="0.005" value="0"><output id="explode_o">0%</output></div>
+  <div class="j"><label>Section</label><select id="secax"><option value="">off</option><option value="x">plane YZ (x)</option><option value="y">plane XZ (y)</option><option value="z">plane XY (z)</option></select><button id="secflip" class="sm">flip</button></div>
+  <div class="j" id="secrow" style="display:none"><label>Position</label><input type="range" id="secpos" min="0" max="1" step="0.002" value="0.5"><output id="secpos_o"></output></div>
+  <h2>Views</h2>
+  <div class="row" id="views"></div>
+  <h2>Drive trains</h2>
+  <div style="color:var(--mut); line-height:1.55">J1 planetary 10:1 + belt 3:1 · J2, J3 two-stage planetary 50:1 · J4 planetary 10:1 + belt 3.6:1 · J5 planetary 10:1 + bevel pair + belt · J6 planetary 10:1 in the wrist · gripper: self-locking Tr8×2 screw and three links. 42 gears in the model.</div>
+</div>
+<div id="load"><div class="t">Loading the model</div><div class="bar"><i id="loadbar"></i></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { makeKin } from './kin.js';
+
+const $ = (s) => document.querySelector(s);
+const canvas = $('#c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0b0e);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(30, 1, 10, 60000);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 250; controls.maxDistance = 9000; controls.maxPolarAngle = Math.PI * 0.55;
+
+// studio
+const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(1500, 2800, 1900); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.camera.near = 200; key.shadow.camera.far = 9000;
+key.shadow.camera.left = -1700; key.shadow.camera.right = 1700; key.shadow.camera.top = 1700; key.shadow.camera.bottom = -1700;
+key.shadow.bias = -0.0004; key.shadow.normalBias = 3; key.shadow.radius = 4;
+key.target.position.set(0, 500, 300); key.shadow.camera.updateProjectionMatrix(); scene.add(key, key.target);
+const fill = new THREE.DirectionalLight(0xdfe6ff, 0.55); fill.position.set(-2400, 1400, -900); scene.add(fill);
+scene.add(new THREE.HemisphereLight(0x9fb4d8, 0x14161a, 0.35));
+const floor = new THREE.Mesh(new THREE.CircleGeometry(4200, 96), new THREE.MeshStandardMaterial({ color: 0x101317, roughness: 0.92, metalness: 0.0 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(8000, 80, 0x2a2f37, 0x1a1e24); grid.position.y = 0.6; grid.material.transparent = true; grid.material.opacity = 0.55; scene.add(grid);
+
+// state
+let meta, kin, meshes = {}, names = [], q = {}, explode = 0, xray = false, selected = null, demo = false, demoT0 = 0;
+const Q0 = { J1: 0, J2: 30, J3: 80, J4: 0, J5: 70, J6: 0, F: 10 };
+const HOME = Object.assign({}, Q0);
+const JOINTS = [['J1', 'J1 Base', '°'], ['J2', 'J2 Shoulder', '°'], ['J3', 'J3 Elbow', '°'], ['J4', 'J4 Forearm roll', '°'], ['J5', 'J5 Wrist pitch', '°'], ['J6', 'J6 Flange', '°'], ['F', 'Gripper', '°']];
+const ss = (x) => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+
+function camTo(tgt, az, el, r, ms = 900) {
+  const a = az * Math.PI / 180, e = el * Math.PI / 180;
+  const eye = new THREE.Vector3(tgt.x + r * Math.sin(a) * Math.cos(e), tgt.y + r * Math.sin(e), tgt.z + r * Math.cos(a) * Math.cos(e));
+  const p0 = camera.position.clone(), t0 = controls.target.clone(), start = performance.now();
+  const step = () => {
+    const u = ss((performance.now() - start) / ms);
+    camera.position.lerpVectors(p0, eye, u); controls.target.lerpVectors(t0, tgt, u);
+    if (u < 1) requestAnimationFrame(step);
+  };
+  step();
+}
+const linkPoint = (link, p) => { const L = kin.pose(q).L[link]; return new THREE.Vector3(L[0] * p[0] + L[1] * p[1] + L[2] * p[2] + L[3], L[4] * p[0] + L[5] * p[1] + L[6] * p[2] + L[7], L[8] * p[0] + L[9] * p[1] + L[10] * p[2] + L[11]); };
+const VIEWS = [
+  ['Overview', () => new THREE.Vector3(-30, 470, 300), 56, 14, 2600, null],
+  ['J1 · base', () => linkPoint(0, [0, 165, 60]), 58, 15, 720, true],
+  ['J2 · shoulder', () => linkPoint(1, [60, 400, 60]), 36, 18, 800, true],
+  ['J3 · J4 elbow', () => linkPoint(3, [-68, 800, 398]), -63, 22, 900, true],
+  ['Wrist', () => linkPoint(4, [-30, 686, 666]), 70, 24, 640, true],
+  ['Gripper', () => linkPoint(6, [-50, 505, 702]), 55, 10, 520, true],
+];
+
+// UI
+const jointsEl = $('#joints');
+for (const [k, label] of JOINTS) {
+  const row = document.createElement('div'); row.className = 'j';
+  row.innerHTML = `<label>${label}</label><input type="range" id="j_${k}" step="0.5"><output id="o_${k}"></output>`;
+  jointsEl.appendChild(row);
+}
+$('#home').onclick = () => { stopDemo(); setQ(HOME); };
+$('#zero').onclick = () => { stopDemo(); setQ({ J1: 0, J2: 0, J3: 0, J4: 0, J5: 0, J6: 0, F: 10 }); };
+$('#demo').onclick = () => { demo ? stopDemo() : startDemo(); };
+$('#xray').onchange = (e) => setXray(e.target.checked);
+$('#explode').oninput = (e) => { explode = +e.target.value; $('#explode_o').textContent = Math.round(explode * 100) + '%'; applyPose(); };
+$('#toggle').onclick = () => $('#panel').classList.toggle('open');
+const viewsEl = $('#views');
+VIEWS.forEach(([name, tgt, az, el, r, xr]) => {
+  const b = document.createElement('button'); b.className = 'sm'; b.textContent = name;
+  b.onclick = () => { camTo(tgt(), az, el, r); if (xr !== null) { $('#xray').checked = xr; setXray(xr); } if (window.innerWidth <= 760) $('#panel').classList.remove('open'); };
+  viewsEl.appendChild(b);
+});
+
+function setQ(nq, fromSlider = false) {
+  q = Object.assign({}, q, nq);
+  for (const [k] of JOINTS) {
+    const s = $('#j_' + k), o = $('#o_' + k);
+    if (!fromSlider) s.value = q[k];
+    o.textContent = (Math.round(q[k] * 2) / 2).toFixed(k === 'F' ? 0 : 1).replace(/\.0$/, '') + '°';
+  }
+  applyPose();
+}
+function applyPose() {
+  if (!kin) return;
+  const { M } = kin.pose(q);
+  for (const n of names) {
+    let m = M[n];
+    if (explode > 0) {
+      const p = meta.parts[n]; const w = ss((explode - 0.06 * p.link) / 0.64);
+      if (w > 0) m = kin.mul(kin.trans([p.expl[0] * w, p.expl[1] * w, p.expl[2] * w]), m);
+    }
+    const mesh = meshes[n]; mesh.matrix.set(...m); mesh.matrixWorldNeedsUpdate = true;
+  }
+}
+function setXray(on) {
+  xray = on;
+  for (const n of names) {
+    const mesh = meshes[n], p = meta.parts[n];
+    if (!p.shell) continue;
+    const mat = mesh.material;
+    mat.transparent = on; mat.opacity = on ? 0.16 : 1; mat.depthWrite = !on; mat.needsUpdate = true;
+    mesh.castShadow = !on; mesh.renderOrder = on ? 2 : 0;
+  }
+}
+// section plane
+let secPlane = null, secFlip = 1;
+const bounds = { x: [-420, 420], y: [0, 1650], z: [-420, 1250] };
+function updateSection() {
+  const ax = $('#secax').value;
+  $('#secrow').style.display = ax ? '' : 'none';
+  if (!ax) { renderer.clippingPlanes = []; secPlane = null; setSides(false); return; }
+  const [lo, hi] = bounds[ax], u = +$('#secpos').value, pos = lo + (hi - lo) * u;
+  const n = new THREE.Vector3(ax === 'x' ? 1 : 0, ax === 'y' ? 1 : 0, ax === 'z' ? 1 : 0).multiplyScalar(-secFlip);
+  secPlane = new THREE.Plane(n, secFlip * pos);
+  renderer.clippingPlanes = [secPlane]; setSides(true);
+  $('#secpos_o').textContent = Math.round(pos) + ' mm';
+}
+function setSides(dbl) { for (const n of names) { const m = meshes[n].material; m.side = dbl ? THREE.DoubleSide : THREE.FrontSide; m.clipShadows = dbl; m.needsUpdate = true; } }
+$('#secax').onchange = updateSection; $('#secpos').oninput = updateSection; $('#secflip').onclick = () => { secFlip = -secFlip; updateSection(); };
+
+// demo (pick-and-place cycle, as in the video)
+const PICK = { J1: -38, J2: 50, J3: 98, J4: 0, J5: 32, J6: 95, F: 28 }, LIFT = { J1: 42, J2: 12, J3: 62, J4: 75, J5: 58, J6: 200, F: 6 };
+const KEYS = [[0, HOME], [0.4, HOME], [2.8, PICK], [3.3, { F: 9 }], [5.6, LIFT], [7.6, Object.assign({}, HOME, { J6: 360 })], [8.6, Object.assign({}, HOME, { J6: 360 })]];
+const FULL = []; { let cur = Object.assign({}, HOME); for (const [t, k] of KEYS) { cur = Object.assign({}, cur, k); FULL.push([t, cur]); } }
+function demoQ(t) {
+  t = t % FULL[FULL.length - 1][0];
+  for (let i = 0; i + 1 < FULL.length; i++) {
+    const [ta, a] = FULL[i], [tb, b] = FULL[i + 1];
+    if (t <= tb) { const u = ss((t - ta) / (tb - ta)); const o = {}; for (const k in a) o[k] = a[k] + (b[k] - a[k]) * u; return o; }
+  }
+  return FULL[FULL.length - 1][1];
+}
+function startDemo() { demo = true; demoT0 = performance.now(); $('#demo').classList.add('on'); $('#demo').textContent = '■ Stop demo'; }
+function stopDemo() { demo = false; $('#demo').classList.remove('on'); $('#demo').textContent = '▶ Play demo'; setQ({ J6: ((q.J6 + 180) % 360 + 360) % 360 - 180 }); }
+
+// picking
+const ray = new THREE.Raycaster(); let downAt = null;
+canvas.addEventListener('pointerdown', (e) => { downAt = [e.clientX, e.clientY]; });
+canvas.addEventListener('pointerup', (e) => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
+  const r = canvas.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+  const list = names.filter(n => !(xray && meta.parts[n].shell)).map(n => meshes[n]);
+  const hits = ray.intersectObjects(list, false).filter(h => !secPlane || secPlane.distanceToPoint(h.point) >= 0);
+  select(hits.length ? hits[0].object.userData.key : null);
+});
+function select(n) {
+  if (selected) { const m = meshes[selected].material; m.emissive.setHex(0x000000); m.emissiveIntensity = 1; }
+  selected = n; const box = $('#info');
+  if (!n) { box.style.display = 'none'; return; }
+  const m = meshes[n].material; m.emissive.setHex(0xff7a1a); m.emissiveIntensity = 0.45;
+  const p = meta.parts[n], unit = meta.units[p.unit] || '';
+  const qty = names.filter(k => meta.parts[k].part === p.part).length;
+  box.innerHTML = `<b>${p.des}</b><div class="m">Unit <i>${p.unit}</i> — ${unit} · position <i>${p.pos}</i>${p.sheet ? ' · sheet ' + p.sheet + ' of the parts catalogue' : ''}<br>${p.std ? p.std + ' · ' : ''}${p.src}${qty > 1 ? ' · ' + qty + ' in the assembly' : ''}</div>`;
+  box.style.display = 'block';
+}
+
+// load
+Promise.all([fetch('meta.json').then(r => r.json()), new Promise((res, rej) => new GLTFLoader().load('robot.glb', res, (ev) => { if (ev.total) $('#loadbar').style.width = Math.round(100 * ev.loaded / ev.total) + '%'; }, rej))])
+.then(([m, gltf]) => {
+  meta = m; kin = makeKin(meta); names = kin.names;
+  const byClean = {}; for (const n of names) byClean[n.replace(/\s/g, '_').replace(/[\[\].:\/]/g, '')] = n;   // GLTFLoader sanitises node names
+  gltf.scene.traverse((o) => { if (o.isMesh) { const n = byClean[o.name] || o.name; o.userData.key = n; o.material = o.material.clone(); o.material.envMapIntensity = 0.9; o.castShadow = true; o.receiveShadow = true; o.matrixAutoUpdate = false; meshes[n] = o; } });
+  const missing = names.filter(n => !meshes[n]); if (missing.length) throw new Error('meshes not found: ' + missing.slice(0, 3).join(', '));
+  scene.add(gltf.scene);
+  for (const [k] of JOINTS) { const s = $('#j_' + k); const [lo, hi] = meta.limits[k]; s.min = lo; s.max = hi; s.oninput = () => { stopDemo(); const o = {}; o[k] = +s.value; setQ(o, true); }; }
+  q = Object.assign({}, HOME); setQ(HOME);
+  camTo(new THREE.Vector3(-30, 470, 300), 56, 14, 2600, 1);
+  $('#load').style.opacity = 0; setTimeout(() => $('#load').remove(), 600);
+}).catch((err) => { $('#load .t').textContent = 'Could not load the model: ' + (err && err.message ? err.message : err); });
+
+function resize() { const w = canvas.clientWidth, h = canvas.clientHeight; if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); } }
+renderer.setAnimationLoop(() => {
+  resize();
+  if (demo) setQ(demoQ((performance.now() - demoT0) / 1000));
+  controls.update(); renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
